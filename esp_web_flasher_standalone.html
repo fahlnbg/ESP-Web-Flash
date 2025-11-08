@@ -863,6 +863,47 @@ html {
   font-weight: 600;
 }
 
+/* Firmware Info Display */
+.firmware-info {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: var(--border-radius);
+  padding: 0.75rem;
+  transition: all var(--transition-speed) var(--transition-ease);
+}
+
+.firmware-details {
+  position: relative;
+}
+
+.firmware-info:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.15);
+}
+
+#firmwareName {
+  font-size: 0.95rem;
+  color: var(--primary-color) !important;
+}
+
+#firmwareDescription {
+  line-height: 1.4;
+  color: var(--dark-light) !important;
+}
+
+.firmware-info .d-flex span {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+.firmware-info .bi {
+  color: var(--primary-color);
+  font-size: 0.85em;
+}
+
 .browser-list {
   list-style: none;
   padding: 0;
@@ -984,11 +1025,19 @@ html {
                             <i class="bi bi-list-ul me-2"></i>Firmware từ danh sách (tự động tải)
                         </label>
                         <select id="firmwareList" class="form-select form-select-lg">
-                            <option value="">-- Chọn firmware mẫu --</option>
-                            <option value="sample1">ESP32 Blink LED</option>
-                            <option value="sample2">ESP32 WiFi Scanner</option>
-                            <option value="sample3">ESP32 Web Server</option>
+                            <option value="">-- Đang tải danh sách firmware... --</option>
                         </select>
+                        <div id="firmwareInfo" class="firmware-info d-none mt-2">
+                            <div class="firmware-details">
+                                <div class="fw-semibold text-primary mb-1" id="firmwareName"></div>
+                                <div class="small text-muted mb-2" id="firmwareDescription"></div>
+                                <div class="d-flex gap-3 small text-muted">
+                                    <span><i class="bi bi-hdd me-1"></i><span id="firmwareSize"></span></span>
+                                    <span><i class="bi bi-geo-alt me-1"></i><span id="firmwareAddress"></span></span>
+                                    <span><i class="bi bi-tag me-1"></i><span id="firmwareVersion"></span></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-12 col-lg-6">
@@ -1125,6 +1174,7 @@ const serialLib = !navigator.serial && navigator.usb ? serial : navigator.serial
 
 let selectedFile = null;
 let startTime = 0;
+let firmwareDatabase = null;
 
 // Check if modules loaded correctly
 console.log('ESPLoader:', typeof ESPLoader);
@@ -1266,6 +1316,140 @@ function parseFlashAddress(addressStr) {
     
     return address;
   }
+
+// Firmware Database Functions
+async function loadFirmwareDatabase() {
+    try {
+        log('Đang tải danh sách firmware...');
+        const response = await fetch('./firmware.json');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        firmwareDatabase = await response.json();
+        log(`✅ Đã tải ${firmwareDatabase.firmwareList.length} firmware từ database`);
+        
+        populateFirmwareList();
+        
+    } catch (error) {
+        log(`❌ Lỗi tải firmware database: ${error.message}`);
+        
+        // Fallback to default options
+        const fallbackOptions = [
+            { id: 'sample1', name: 'ESP32 Blink LED (Offline)', description: 'Sample firmware - offline mode' },
+            { id: 'sample2', name: 'ESP32 WiFi Scanner (Offline)', description: 'Sample firmware - offline mode' },
+            { id: 'sample3', name: 'ESP32 Web Server (Offline)', description: 'Sample firmware - offline mode' }
+        ];
+        
+        const firmwareListEl = document.getElementById('firmwareList');
+        firmwareListEl.innerHTML = '<option value="">-- Chọn firmware mẫu (offline) --</option>';
+        
+        fallbackOptions.forEach(fw => {
+            const option = document.createElement('option');
+            option.value = fw.id;
+            option.textContent = fw.name;
+            firmwareListEl.appendChild(option);
+        });
+    }
+}
+
+function populateFirmwareList() {
+    const firmwareListEl = document.getElementById('firmwareList');
+    
+    // Clear loading state
+    firmwareListEl.innerHTML = '<option value="">-- Chọn firmware từ danh sách --</option>';
+    
+    // Group by category
+    const categories = {};
+    firmwareDatabase.firmwareList.forEach(fw => {
+        if (!categories[fw.category]) {
+            categories[fw.category] = [];
+        }
+        categories[fw.category].push(fw);
+    });
+    
+    // Add options grouped by category
+    Object.keys(categories).sort().forEach(category => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = category;
+        
+        categories[category].forEach(fw => {
+            const option = document.createElement('option');
+            option.value = fw.id;
+            option.textContent = `${fw.name} (${fw.size})`;
+            option.dataset.firmware = JSON.stringify(fw);
+            optgroup.appendChild(option);
+        });
+        
+        firmwareListEl.appendChild(optgroup);
+    });
+}
+
+function showFirmwareInfo(firmware) {
+    const firmwareInfo = document.getElementById('firmwareInfo');
+    const firmwareName = document.getElementById('firmwareName');
+    const firmwareDescription = document.getElementById('firmwareDescription');
+    const firmwareSize = document.getElementById('firmwareSize');
+    const firmwareAddress = document.getElementById('firmwareAddress');
+    const firmwareVersion = document.getElementById('firmwareVersion');
+    
+    if (!firmware) {
+        firmwareInfo.classList.add('d-none');
+        return;
+    }
+    
+    firmwareName.textContent = firmware.name;
+    firmwareDescription.textContent = firmware.description;
+    firmwareSize.textContent = firmware.size;
+    firmwareAddress.textContent = firmware.flashAddress;
+    firmwareVersion.textContent = `v${firmware.version}`;
+    
+    // Update flash address input
+    flashAddressInput.value = firmware.flashAddress;
+    
+    // Trigger validation
+    flashAddressInput.dispatchEvent(new Event('input'));
+    
+    firmwareInfo.classList.remove('d-none');
+}
+
+async function downloadFirmware(firmware) {
+    try {
+        log(`📥 Đang tải firmware: ${firmware.name}`);
+        
+        let url = firmware.path;
+        
+        // Handle different path types
+        if (url.startsWith('local://')) {
+            // Local file path - remove local:// prefix and use relative path
+            url = './' + url.replace('local://', '');
+            log(`📁 Đường dẫn local: ${url}`);
+        } else if (url.startsWith('http://') || url.startsWith('https://')) {
+            log(`🌐 Đường dẫn remote: ${url}`);
+        } else {
+            throw new Error('Định dạng đường dẫn không hợp lệ');
+        }
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+        const file = new File([blob], firmware.filename, { type: 'application/octet-stream' });
+        
+        log(`✅ Đã tải thành công: ${firmware.filename} (${(arrayBuffer.byteLength / 1024).toFixed(1)}KB)`);
+        
+        return file;
+        
+    } catch (error) {
+        log(`❌ Lỗi tải firmware: ${error.message}`);
+        throw error;
+    }
+}
 
 // File handling
 browseBtn.addEventListener('click', (e) => {
@@ -1502,24 +1686,55 @@ flashBtn.addEventListener('click', async () => {
   }
 });
 
-// Sample firmware selection
+// Firmware selection from database
 firmwareList.addEventListener('change', async (e) => {
-  const selected = e.target.value;
-  if (!selected) return;
-  
-  log(`Đang tải firmware mẫu: ${selected}`);
-  
-  // Create a sample firmware file (just for demo)
-  const sampleData = new Uint8Array(1024); // 1KB sample
-  sampleData.fill(0xFF); // Fill with 0xFF (typical for flash)
-  
-  const blob = new Blob([sampleData], { type: 'application/octet-stream' });
-  const file = new File([blob], `${selected}.bin`, { type: 'application/octet-stream' });
-  
-  handleFileSelect(file);
-  
-  // Reset selection
-  e.target.value = '';
+    const selected = e.target.value;
+    const selectedOption = e.target.options[e.target.selectedIndex];
+    
+    if (!selected) {
+        showFirmwareInfo(null);
+        return;
+    }
+    
+    // Check if it's a fallback option (offline mode)
+    if (selected.startsWith('sample')) {
+        log(`Đang tải firmware mẫu (offline): ${selectedOption.textContent}`);
+        
+        // Create a sample firmware file for offline mode
+        const sampleData = new Uint8Array(1024); // 1KB sample
+        sampleData.fill(0xFF); // Fill with 0xFF (typical for flash)
+        
+        const blob = new Blob([sampleData], { type: 'application/octet-stream' });
+        const file = new File([blob], `${selected}.bin`, { type: 'application/octet-stream' });
+        
+        handleFileSelect(file);
+        
+        // Reset selection
+        e.target.value = '';
+        return;
+    }
+    
+    try {
+        // Parse firmware data from dataset
+        const firmware = JSON.parse(selectedOption.dataset.firmware);
+        
+        // Show firmware info
+        showFirmwareInfo(firmware);
+        
+        // Download and select firmware
+        const file = await downloadFirmware(firmware);
+        handleFileSelect(file);
+        
+    } catch (error) {
+        alert(`Lỗi tải firmware: ${error.message}`);
+        log(`❌ Chi tiết lỗi: ${error.stack || error.message}`);
+    }
+    
+    // Reset selection to allow reselecting the same firmware
+    setTimeout(() => {
+        e.target.value = '';
+        showFirmwareInfo(null);
+    }, 100);
 });
 
 // Clear log
@@ -1670,8 +1885,8 @@ function checkBrowserCompatibility() {
     return true;
 }
 
-// Add browser compatibility check to DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => {
+// Add browser compatibility check to DOMContentLoaded  
+document.addEventListener('DOMContentLoaded', async () => {
     log('ESP32 Web Flasher đã sẵn sàng');
     
     // Check browser compatibility first
@@ -1679,9 +1894,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (isCompatible) {
         log('✅ Trình duyệt tương thích');
+        log('Hãy kết nối ESP32 và chọn file firmware để bắt đầu');
     } else {
         log('❌ Trình duyệt không tương thích');
     }
+
+    // Check if running from file:// protocol
+    if (window.location.protocol === 'file:') {
+        log('⚠️ Cảnh báo: Đang chạy từ file://');
+        log('💡 Khuyến nghị: Sử dụng Live Server hoặc HTTP server để tránh lỗi CORS');
+    }
+    
+    // Load firmware database
+    await loadFirmwareDatabase();
 });
 
 </script>
