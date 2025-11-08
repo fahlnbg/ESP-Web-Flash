@@ -39,7 +39,7 @@
       "hardware_info": {
         "chip": "ESP32-S3",
         "flash_size": "16MB",
-        "compatible_boards": ["TienHuyIoT Xiaozhi Music Board", "ESP32-S3 DevKit"],
+        "compatible_boards": ["bread-compact-wifi"],
         "minimum_requirements": {
           "flash": "8MB",
           "ram": "512KB",
