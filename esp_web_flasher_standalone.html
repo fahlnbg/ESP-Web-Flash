@@ -1336,30 +1336,94 @@ function parseFlashAddress(addressStr) {
     return address;
   }
 
+// Embedded Firmware Database - Avoid CORS issues with file:// protocol
+const EMBEDDED_FIRMWARE_DATABASE = {
+  "firmwareList": [
+    {
+      "id": "esp32_deep_sleep",
+      "name": "ESP32 Deep Sleep Demo",
+      "filename": "deep_sleep_demo.bin",
+      "flashAddress": "0x10000",
+      "path": "local://samples/deep_sleep_demo.bin",
+      "description": "Demo chế độ deep sleep để tiết kiệm pin - thức dậy bằng timer hoặc GPIO",
+      "size": "198KB",
+      "version": "1.3.1",
+      "category": "Power Management",
+      "note": "Phù hợp cho ESP32 module và board phát triển"
+    },
+    {
+      "id": "xiaozhi_music_v2.0.4",
+      "name": "Xiaozhi Music V2.0.4",
+      "filename": "esp32s3_xiaozhi_music_v2.0.4.bin",
+      "flashAddress": "0x00000",
+      "path": "https://cdn.jsdelivr.net/gh/TienHuyIoT/esp_web_flasher@master/samples/esp32s3_xiaozhi_music_v2.0.4.bin",
+      "description": "Firmware board TÍM OLED AI Xiaozhi Music Việt Nam",
+      "size": "8,743KB",
+      "version": "2.0.4",
+      "category": "AI Xiaozhi",
+      "note": "Chỉ dành cho ESP32-S3 module"
+    }
+  ],
+  "categories": [
+    "AI Xiaozhi",
+    "Basic Examples",
+    "WiFi Examples", 
+    "Web Examples",
+    "IoT Examples",
+    "Bluetooth Examples",
+    "BLE Examples",
+    "Power Management",
+    "Camera Examples"
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2025-11-08",
+    "description": "ESP32 firmware collection for web flasher",
+    "author": "TienHuyIoT"
+  }
+};
+
 // Firmware Database Functions
 async function loadFirmwareDatabase() {
     try {
         log('Đang tải danh sách firmware...');
-        const response = await fetch('./firmware.json');
         
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // First try to fetch external firmware.json (for HTTP server)
+        if (window.location.protocol !== 'file:') {
+            try {
+                const response = await fetch('./firmware.json');
+                if (response.ok) {
+                    firmwareDatabase = await response.json();
+                    log(`✅ Đã tải ${firmwareDatabase.firmwareList.length} firmware từ file external`);
+                    populateFirmwareList();
+                    return;
+                }
+            } catch (fetchError) {
+                log(`⚠️ Không thể tải file external, sử dụng embedded database`);
+            }
         }
         
-        firmwareDatabase = await response.json();
-        log(`✅ Đã tải ${firmwareDatabase.firmwareList.length} firmware từ database`);
+        // Use embedded database (for file:// protocol or fallback)
+        firmwareDatabase = EMBEDDED_FIRMWARE_DATABASE;
+        log(`✅ Đã tải ${firmwareDatabase.firmwareList.length} firmware từ embedded database`);
+        log(`📋 Database version: ${firmwareDatabase.metadata.version} (${firmwareDatabase.metadata.lastUpdated})`);
         
         populateFirmwareList();
         
     } catch (error) {
         log(`❌ Lỗi tải firmware database: ${error.message}`);
         
-        // Fallback to default options
+        // Final fallback to default options
         const fallbackOptions = [
-            { id: 'sample1', name: 'ESP32 Blink LED (Offline)', description: 'Sample firmware - offline mode' },
-            { id: 'sample2', name: 'ESP32 WiFi Scanner (Offline)', description: 'Sample firmware - offline mode' },
-            { id: 'sample3', name: 'ESP32 Web Server (Offline)', description: 'Sample firmware - offline mode' }
+            { id: 'sample1', name: 'ESP32 Blink LED (Offline)', description: 'Sample firmware - offline mode', category: 'Basic Examples' },
+            { id: 'sample2', name: 'ESP32 WiFi Scanner (Offline)', description: 'Sample firmware - offline mode', category: 'WiFi Examples' },
+            { id: 'sample3', name: 'ESP32 Web Server (Offline)', description: 'Sample firmware - offline mode', category: 'Web Examples' }
         ];
+        
+        firmwareDatabase = {
+            firmwareList: fallbackOptions,
+            categories: ['Basic Examples', 'WiFi Examples', 'Web Examples']
+        };
         
         const firmwareListEl = document.getElementById('firmwareList');
         firmwareListEl.innerHTML = '<option value="">-- Chọn firmware mẫu (offline) --</option>';
@@ -1370,6 +1434,8 @@ async function loadFirmwareDatabase() {
             option.textContent = fw.name;
             firmwareListEl.appendChild(option);
         });
+        
+        log(`💡 Đã sử dụng fallback database với ${fallbackOptions.length} firmware mẫu`);
     }
 }
 
@@ -1882,8 +1948,10 @@ log('Hãy kết nối ESP32 và chọn file firmware để bắt đầu');
 
 // Check if running from file:// protocol
 if (window.location.protocol === 'file:') {
-  log('⚠️ Cảnh báo: Đang chạy từ file://');
-  log('💡 Khuyến nghị: Sử dụng Live Server hoặc HTTP server để tránh lỗi CORS');
+  log('⚠️ Chạy từ file:// protocol - sử dụng embedded firmware database');
+  log('💡 Khuyến nghị: Sử dụng Live Server hoặc HTTP server để load external firmware.json');
+} else {
+  log(`🌐 Chạy từ ${window.location.protocol} - có thể load external firmware.json`);
 }
 
 // Create warning modal
@@ -1997,8 +2065,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Check if running from file:// protocol
     if (window.location.protocol === 'file:') {
-        log('⚠️ Cảnh báo: Đang chạy từ file://');
-        log('💡 Khuyến nghị: Sử dụng Live Server hoặc HTTP server để tránh lỗi CORS');
+        log('⚠️ Chạy từ file:// protocol - firmware database được nhúng sẵn');
+        log('💡 Khuyến nghị: Sử dụng Live Server hoặc HTTP server để load external firmware.json');
+    } else {
+        log(`🌐 Chạy từ ${window.location.protocol} - sẽ thử load external firmware.json`);
     }
     
     // Load firmware database
