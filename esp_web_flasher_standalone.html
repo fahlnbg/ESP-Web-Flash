@@ -738,6 +738,216 @@ html {
   background: var(--primary-color);
   color: white;
 }
+
+/* ========== Warning Modal ========== */
+.warning-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.warning-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.warning-content {
+  background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  position: relative;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.warning-modal.show .warning-content {
+  transform: scale(1);
+}
+
+.warning-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--danger-color), #f59e0b, var(--danger-color));
+}
+
+.warning-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.warning-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--danger-color), #f59e0b);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: white;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+}
+
+.warning-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--dark-color);
+  margin: 0;
+  background: linear-gradient(135deg, var(--danger-color), #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.warning-message {
+  color: var(--dark-light);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.warning-browsers {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.warning-browsers h4 {
+  color: var(--success-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Flash Status Notification */
+#flashStatusNotification {
+  background: linear-gradient(135deg, #e0f2fe, #b3e5fc);
+  border: 1px solid #81d4fa;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+#flashStatusNotification .spinner-border {
+  color: var(--primary-color);
+}
+
+#flashStatusNotification strong {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.browser-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.browser-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  color: var(--dark-light);
+  font-weight: 500;
+}
+
+.browser-list li::before {
+  content: '✓';
+  color: var(--success-color);
+  font-weight: bold;
+}
+
+.current-browser {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.current-browser h4 {
+  color: var(--danger-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.current-browser p {
+  margin: 0;
+  color: var(--dark-light);
+  font-weight: 500;
+}
+
+.warning-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.warning-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.warning-btn-primary {
+  background: linear-gradient(135deg, var(--danger-color), #f59e0b);
+  color: white;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.warning-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.warning-btn-secondary {
+  background: #f1f5f9;
+  color: var(--dark-light);
+  border: 1px solid var(--border-color);
+}
+
+.warning-btn-secondary:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
 </style>
 </head>
 <body>
@@ -818,6 +1028,19 @@ html {
                     </div>
                 </div>
 
+                <!-- Flash Status Notification -->
+                <div id="flashStatusNotification" class="alert alert-info d-none mb-3" role="alert">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-3" role="status">
+                            <span class="visually-hidden">Đang tải...</span>
+                        </div>
+                        <div>
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Bắt đầu ghi flash, vui lòng chờ đến khi có thông báo hoàn thành...</strong>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Progress Section -->
                 <div class="mb-3">
                     <div id="progress" class="progress-custom">
@@ -856,11 +1079,12 @@ html {
         </div>
 
         <!-- Footer -->
-        <div class="text-center mt-4 text-muted">
-            <small>
+        <div class="text-center mt-4" style="color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.3); font-size: 0.95rem;">
+            <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 12px; padding: 0.75rem 1.5rem; display: inline-block; border: 1px solid rgba(255,255,255,0.2);">
                 <i class="bi bi-github me-1"></i>
-                Powered by <a href="https://github.com/espressif/esptool-js" target="_blank" class="text-decoration-none">esptool-js</a>
-            </small>
+                Created by <a href="https://github.com/TienHuyIoT" target="_blank" class="text-decoration-none" style="color: #f093fb; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">TienHuyIoT</a>
+                • Powered by <a href="https://github.com/espressif/esptool-js" target="_blank" class="text-decoration-none" style="color: #87ceeb; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">esptool-js</a>
+            </div>
         </div>
     </div>
 
@@ -1185,6 +1409,8 @@ eraseBtn.addEventListener('click', async () => {
 flashBtn.addEventListener('click', async () => {
   if (!espLoader) return alert('Chưa kết nối thiết bị');
   if (!selectedFile) return alert('Chưa chọn file firmware');
+  
+  const flashStatusNotification = document.getElementById('flashStatusNotification');
 
   const readUploadedFileAsBinaryString = (inputFile) => {
       const reader = new FileReader();
@@ -1203,6 +1429,9 @@ flashBtn.addEventListener('click', async () => {
   };
   
   try {
+    // Show flash status notification
+    flashStatusNotification.classList.remove('d-none');
+    
     log(`Bắt đầu nạp firmware: ${selectedFile.name}`);
     setProgress(0);
     startTime = Date.now();
@@ -1227,6 +1456,8 @@ flashBtn.addEventListener('click', async () => {
     const flashOptions = {
       fileArray: fileArray,
       flashSize: "keep",
+      flashMode: undefined,  // Để esptool-js tự động detect mode phù hợp (QIO/DIO/DOUT)
+      flashFreq: undefined,  // Để esptool-js tự động detect frequency (40MHz/80MHz)
       eraseAll: false,
       compress: true,
       reportProgress: (fileIndex, written, total) => {
@@ -1235,9 +1466,14 @@ flashBtn.addEventListener('click', async () => {
       },
       calculateMD5Hash: (image) => CryptoJS.MD5(CryptoJS.enc.Latin1.parse(image)),
     };
+    log('⚠️ Bắt đầu ghi flash, vui lòng chờ đến khi có thông báo hoàn thành...');
     await espLoader.writeFlash(flashOptions);
     
     setProgress(100);
+    
+    // Hide flash status notification on success
+    flashStatusNotification.classList.add('d-none');
+    
     log('Nạp firmware thành công!');
     log('Bạn có thể reset ESP32 để chạy firmware mới');
     
@@ -1258,6 +1494,9 @@ flashBtn.addEventListener('click', async () => {
     }
     
   } catch (err) {
+    // Hide flash status notification on error
+    flashStatusNotification.classList.add('d-none');
+    
     log('Lỗi nạp firmware:', err.message);
     alert('Lỗi nạp firmware: ' + err.message);
   }
@@ -1335,6 +1574,115 @@ if (window.location.protocol === 'file:') {
   log('⚠️ Cảnh báo: Đang chạy từ file://');
   log('💡 Khuyến nghị: Sử dụng Live Server hoặc HTTP server để tránh lỗi CORS');
 }
+
+// Create warning modal
+function createWarningModal() {
+    const modal = document.createElement('div');
+    modal.className = 'warning-modal';
+    modal.id = 'browserWarningModal';
+    
+    const currentBrowser = navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                          navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? 'Safari' : 
+                          navigator.userAgent.includes('Opera') ? 'Opera' :
+                          'Trình duyệt không hỗ trợ';
+    
+    modal.innerHTML = `
+        <div class="warning-content">
+            <div class="warning-header">
+                <div class="warning-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <h2 class="warning-title">Cảnh báo trình duyệt</h2>
+            </div>
+            
+            <div class="warning-message">
+                <p>Trang web ESP32 Web Flasher cần sử dụng <strong>Web Serial API</strong> để kết nối với thiết bị ESP32. API này chỉ được hỗ trợ trên một số trình duyệt nhất định.</p>
+            </div>
+            
+            <div class="warning-browsers">
+                <h4><i class="bi bi-check-circle-fill"></i> Trình duyệt được hỗ trợ:</h4>
+                <ul class="browser-list">
+                    <li><strong>Google Chrome</strong> (khuyến nghị)</li>
+                    <li><strong>Microsoft Edge</strong></li>
+                </ul>
+            </div>
+            
+            <div class="current-browser">
+                <h4><i class="bi bi-x-circle-fill"></i> Trình duyệt hiện tại:</h4>
+                <p><strong>${currentBrowser}</strong> - Không hỗ trợ Web Serial API</p>
+            </div>
+            
+            <div class="warning-message">
+                <p><i class="bi bi-info-circle"></i> Vui lòng mở trang này bằng <strong>Chrome</strong> hoặc <strong>Edge</strong> để sử dụng đầy đủ tính năng flash ESP32.</p>
+            </div>
+            
+            <div class="warning-footer">
+                <button class="warning-btn warning-btn-primary" onclick="closeWarningModal()">
+                    <i class="bi bi-x-lg"></i> Đóng
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    return modal;
+}
+
+// Show warning modal
+function showWarningModal() {
+    const modal = document.getElementById('browserWarningModal') || createWarningModal();
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+}
+
+// Close warning modal
+function closeWarningModal() {
+    const modal = document.getElementById('browserWarningModal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+}
+
+// Make functions global for onclick handlers
+window.closeWarningModal = closeWarningModal;
+
+// Browser compatibility check
+function checkBrowserCompatibility() {
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    const isEdge = /Edg/.test(navigator.userAgent);
+    
+    if (!isChrome && !isEdge) {
+        // Show beautiful warning modal
+        showWarningModal();
+        
+        // Also disable connect button
+        connectBtn.disabled = true;
+        connectBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Trình duyệt không hỗ trợ';
+        connectBtn.title = 'Vui lòng sử dụng Chrome hoặc Edge';
+        
+        return false;
+    }
+    
+    return true;
+}
+
+// Add browser compatibility check to DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    log('ESP32 Web Flasher đã sẵn sàng');
+    
+    // Check browser compatibility first
+    const isCompatible = checkBrowserCompatibility();
+    
+    if (isCompatible) {
+        log('✅ Trình duyệt tương thích');
+    } else {
+        log('❌ Trình duyệt không tương thích');
+    }
+});
 
 </script>
 </body>

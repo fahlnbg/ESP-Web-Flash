@@ -366,7 +366,12 @@ flashBtn.addEventListener('click', async () => {
     if (!espLoader) return alert('Chưa kết nối thiết bị');
     if (!selectedFile) return alert('Chưa chọn file firmware');
     
+    const flashStatusNotification = document.getElementById('flashStatusNotification');
+    
     try {
+        // Show flash status notification
+        flashStatusNotification.classList.remove('d-none');
+        
         log(`Bắt đầu nạp firmware: ${selectedFile.name}`);
         setProgress(0);
         startTime = Date.now();
@@ -390,6 +395,8 @@ flashBtn.addEventListener('click', async () => {
         const flashOptions = {
             fileArray: fileArray,
             flashSize: "keep",
+            flashMode: undefined,  // Để esptool-js tự động detect mode phù hợp (QIO/DIO/DOUT)
+            flashFreq: undefined,  // Để esptool-js tự động detect frequency (40MHz/80MHz)
             eraseAll: false,
             compress: true,
             reportProgress: (fileIndex, written, total) => {
@@ -398,9 +405,14 @@ flashBtn.addEventListener('click', async () => {
             },
             calculateMD5Hash: (image) => CryptoJS.MD5(CryptoJS.enc.Latin1.parse(image)),
         };
+        log('⚠️ Bắt đầu ghi flash, vui lòng chờ đến khi có thông báo hoàn thành...');
         await espLoader.writeFlash(flashOptions);
         
         setProgress(100);
+        
+        // Hide flash status notification on success
+        flashStatusNotification.classList.add('d-none');
+        
         log('Nạp firmware thành công!');
         log('Bạn có thể reset ESP32 để chạy firmware mới');
         
@@ -421,6 +433,9 @@ flashBtn.addEventListener('click', async () => {
         }
         
     } catch (err) {
+        // Hide flash status notification on error
+        flashStatusNotification.classList.add('d-none');
+        
         log('Lỗi nạp firmware:', err.message);
         alert('Lỗi nạp firmware: ' + err.message);
     }
@@ -456,10 +471,114 @@ openOfficialBtn.addEventListener('click', () => {
     window.open('https://espressif.github.io/esptool-js/', '_blank');
 });
 
+// Create warning modal
+function createWarningModal() {
+    const modal = document.createElement('div');
+    modal.className = 'warning-modal';
+    modal.id = 'browserWarningModal';
+    
+    const currentBrowser = navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                          navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? 'Safari' : 
+                          navigator.userAgent.includes('Opera') ? 'Opera' :
+                          'Trình duyệt không hỗ trợ';
+    
+    modal.innerHTML = `
+        <div class="warning-content">
+            <div class="warning-header">
+                <div class="warning-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <h2 class="warning-title">Cảnh báo trình duyệt</h2>
+            </div>
+            
+            <div class="warning-message">
+                <p>Trang web ESP32 Web Flasher cần sử dụng <strong>Web Serial API</strong> để kết nối với thiết bị ESP32. API này chỉ được hỗ trợ trên một số trình duyệt nhất định.</p>
+            </div>
+            
+            <div class="warning-browsers">
+                <h4><i class="bi bi-check-circle-fill"></i> Trình duyệt được hỗ trợ:</h4>
+                <ul class="browser-list">
+                    <li><strong>Google Chrome</strong> (khuyến nghị)</li>
+                    <li><strong>Microsoft Edge</strong></li>
+                </ul>
+            </div>
+            
+            <div class="current-browser">
+                <h4><i class="bi bi-x-circle-fill"></i> Trình duyệt hiện tại:</h4>
+                <p><strong>${currentBrowser}</strong> - Không hỗ trợ Web Serial API</p>
+            </div>
+            
+            <div class="warning-message">
+                <p><i class="bi bi-info-circle"></i> Vui lòng mở trang này bằng <strong>Chrome</strong> hoặc <strong>Edge</strong> để sử dụng đầy đủ tính năng flash ESP32.</p>
+            </div>
+            
+            <div class="warning-footer">
+                <button class="warning-btn warning-btn-primary" onclick="closeWarningModal()">
+                    <i class="bi bi-x-lg"></i> Đóng
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    return modal;
+}
+
+// Show warning modal
+function showWarningModal() {
+    const modal = document.getElementById('browserWarningModal') || createWarningModal();
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+}
+
+// Close warning modal
+function closeWarningModal() {
+    const modal = document.getElementById('browserWarningModal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+}
+
+// Make functions global for onclick handlers
+window.closeWarningModal = closeWarningModal;
+
+// Browser compatibility check
+function checkBrowserCompatibility() {
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    const isEdge = /Edg/.test(navigator.userAgent);
+    
+    if (!isChrome && !isEdge) {
+        // Show beautiful warning modal
+        showWarningModal();
+        
+        // Also disable connect button
+        connectBtn.disabled = true;
+        connectBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Trình duyệt không hỗ trợ';
+        connectBtn.title = 'Vui lòng sử dụng Chrome hoặc Edge';
+        
+        return false;
+    }
+    
+    return true;
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     log('ESP32 Web Flasher đã sẵn sàng');
-    log('Hãy kết nối ESP32 và chọn file firmware để bắt đầu');
+    
+    // Check browser compatibility first
+    const isCompatible = checkBrowserCompatibility();
+    
+    if (isCompatible) {
+        log('✅ Trình duyệt tương thích');
+        log('Hãy kết nối ESP32 và chọn file firmware để bắt đầu');
+    } else {
+        log('❌ Trình duyệt không tương thích');
+    }
 
     // Check if running from file:// protocol
     if (window.location.protocol === 'file:') {
