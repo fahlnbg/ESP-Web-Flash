@@ -316,34 +316,98 @@ async function downloadFirmware(firmware) {
         log(`📥 Đang tải firmware: ${firmware.name}`);
         
         let url = firmware.path;
+        let fallbackUrls = [];
         
-        // Handle different path types
+        // Handle different path types and create fallback URLs
         if (url.startsWith('local://')) {
             // Local file path - remove local:// prefix and use relative path
             url = './' + url.replace('local://', '');
             log(`📁 Đường dẫn local: ${url}`);
         } else if (url.startsWith('http://') || url.startsWith('https://')) {
             log(`🌐 Đường dẫn remote: ${url}`);
+            
+            // Create fallback URLs for GitHub
+            if (url.includes('github.com')) {
+                if (url.includes('jsdelivr.net')) {
+                    // If using jsdelivr, try raw GitHub as fallback
+                    fallbackUrls.push(url.replace('https://cdn.jsdelivr.net/gh/', 'https://github.com/').replace('@master', '/raw/master'));
+                } else if (url.includes('/raw/')) {
+                    // If using raw, try jsdelivr as fallback
+                    fallbackUrls.push(url.replace('https://github.com/', 'https://cdn.jsdelivr.net/gh/').replace('/raw/master', '@master'));
+                } else if (url.includes('/blob/')) {
+                    // Convert blob to raw and add jsdelivr fallback
+                    const rawUrl = url.replace('/blob/', '/raw/');
+                    fallbackUrls.push(rawUrl);
+                    fallbackUrls.push(rawUrl.replace('https://github.com/', 'https://cdn.jsdelivr.net/gh/').replace('/raw/master', '@master'));
+                }
+            }
         } else {
             throw new Error('Định dạng đường dẫn không hợp lệ');
         }
         
-        const response = await fetch(url);
+        // Try main URL first, then fallbacks
+        const urlsToTry = [url, ...fallbackUrls];
+        let lastError = null;
         
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        for (let i = 0; i < urlsToTry.length; i++) {
+            const tryUrl = urlsToTry[i];
+            try {
+                log(`🔄 Thử tải từ: ${tryUrl}`);
+                
+                const response = await fetch(tryUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/octet-stream',
+                    },
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                log(`📋 Content-Type: ${contentType}`);
+                
+                const arrayBuffer = await response.arrayBuffer();
+                
+                if (arrayBuffer.byteLength === 0) {
+                    throw new Error('File rỗng (0 bytes)');
+                }
+                
+                const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+                const file = new File([blob], firmware.filename, { type: 'application/octet-stream' });
+                
+                log(`✅ Đã tải thành công: ${firmware.filename} (${(arrayBuffer.byteLength / 1024).toFixed(1)}KB)`);
+                
+                return file;
+                
+            } catch (error) {
+                lastError = error;
+                log(`⚠️ Thất bại với URL ${i + 1}/${urlsToTry.length}: ${error.message}`);
+                
+                if (i < urlsToTry.length - 1) {
+                    log(`🔄 Thử URL tiếp theo...`);
+                }
+            }
         }
         
-        const arrayBuffer = await response.arrayBuffer();
-        const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
-        const file = new File([blob], firmware.filename, { type: 'application/octet-stream' });
-        
-        log(`✅ Đã tải thành công: ${firmware.filename} (${(arrayBuffer.byteLength / 1024).toFixed(1)}KB)`);
-        
-        return file;
+        // All URLs failed
+        throw lastError || new Error('Không thể tải firmware từ bất kỳ URL nào');
         
     } catch (error) {
         log(`❌ Lỗi tải firmware: ${error.message}`);
+        
+        // Detailed error logging
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            log(`💡 Gợi ý: Kiểm tra kết nối mạng hoặc CORS policy`);
+        } else if (error.message.includes('404')) {
+            log(`💡 Gợi ý: File không tồn tại trên server`);
+        } else if (error.message.includes('403')) {
+            log(`💡 Gợi ý: Không có quyền truy cập file`);
+        }
+        
         throw error;
     }
 }
